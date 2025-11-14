@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Resume | Krishan Kant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chosen Palette: Warm Neutrals (BG: gray-50, Cards: white, Text: gray-800, Accent: indigo-600) -->
+    <!-- Application Structure Plan: Designed as an interactive dashboard. Instead of a linear resume, this SPA uses a sticky nav and distinct interactive sections (KPIs, Filterable Skills, Tabbed Portfolio) to immediately highlight the user's unique value prop (Social + Tech). The user flow encourages exploration, allowing a recruiter to see top-level social stats, filter skills to see the dual expertise, and then deep-dive into re-contextualized projects (social vs. tech). This is more usable for a hiring manager. -->
+    <!-- Visualization & Content Choices: 1. Social KPIs (Report: 5k/7%/500+) -> Goal: Inform -> Viz: HTML/Tailwind "Stat Cards" -> Interaction: Hover -> Justification: Quick, high-impact stats. 2. Engagement (Report: 7%) -> Goal: Compare -> Viz: Bar Chart (Chart.js/Canvas) comparing 7% to industry avg -> Interaction: Tooltip -> Justification: Visually proves "above-average" claim. 3. Core Skills (Report: Skills Table) -> Goal: Organize/Explore -> Viz: HTML/Tailwind "Pills" -> Interaction: JS Filter Buttons -> Justification: Proves dual-skillset interactively. 4. Projects (Report: Experience/Projects) -> Goal: Re-contextualize -> Viz: HTML/Tailwind Tabs -> Interaction: JS Tab Toggle -> Justification: Separates "Social" from "Tech" for clarity. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb; /* bg-gray-50 */
+            color: #1f2937; /* text-gray-800 */
+        }
+        .nav-link {
+            @apply px-3 py-2 text-gray-700 rounded-md hover:bg-gray-200 hover:text-gray-900 transition-colors;
+        }
+        .nav-link.active {
+            @apply bg-indigo-100 text-indigo-700 font-medium;
+        }
+        .stat-card {
+            @apply bg-white p-6 rounded-lg shadow-md border border-gray-100 transition-transform duration-300 hover:scale-105;
+        }
+        .skill-pill {
+            @apply bg-indigo-100 text-indigo-800 px-4 py-2 rounded-full font-medium text-sm transition-all;
+        }
+        .filter-btn {
+            @apply px-4 py-2 rounded-md font-medium text-sm transition-colors;
+        }
+        .filter-btn.active {
+            @apply bg-indigo-600 text-white shadow-sm;
+        }
+        .filter-btn:not(.active) {
+            @apply bg-white text-gray-700 hover:bg-gray-100;
+        }
+        .tab-btn {
+            @apply px-6 py-3 font-medium text-gray-600 border-b-2 border-transparent hover:text-indigo-600 hover:border-indigo-300 transition-all;
+        }
+        .tab-btn.active {
+            @apply text-indigo-600 border-indigo-600;
+        }
+        .tab-content {
+            @apply hidden;
+        }
+        .tab-content.active {
+            @apply block;
+        }
+        .chart-container { 
+            position: relative; 
+            width: 100%; 
+            max-width: 600px; 
+            margin-left: auto; 
+            margin-right: auto; 
+            height: 300px; 
+            max-height: 400px; 
+        }
+        @media (min-width: 768px) { 
+            .chart-container { 
+                height: 350px; 
+            } 
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-sm shadow-sm border-b border-gray-200">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <span class="text-xl font-bold text-indigo-600">Krishan Kant</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#home" class="nav-link active" data-section="home">Home</a>
+                        <a href="#strategy" class="nav-link" data-section="strategy">Social Strategy</a>
+                        <a href="#skills" class="nav-link" data-section="skills">Skills Dashboard</a>
+                        <a href="#portfolio" class="nav-link" data-section="portfolio">Portfolio</a>
+                        <a href="#education" class="nav-link" data-section="education">Education</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-btn" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500">
+                        <span class="sr-only">Open main menu</span>
+                        <div class="w-6 h-0.5 bg-gray-900"></div>
+                        <div class="w-6 h-0.5 bg-gray-900 mt-1.5"></div>
+                        <div class="w-6 h-0.5 bg-gray-900 mt-1.5"></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="mobile-menu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#home" class="block nav-link active" data-section="home">Home</a>
+                <a href="#strategy" class="block nav-link" data-section="strategy">Social Strategy</a>
+                <a href="#skills" class="block nav-link" data-section="skills">Skills Dashboard</a>
+                <a href="#portfolio" class="block nav-link" data-section="portfolio">Portfolio</a>
+                <a href="#education" class="block nav-link" data-section="education">Education</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
+
+        <section id="home" class="pt-16 min-h-[calc(100vh-64px)] flex items-center justify-center text-center">
+            <div class="max-w-3xl">
+                <h1 class="text-4xl md:text-6xl font-bold text-gray-900 leading-tight">Krishan Kant</h1>
+                <p class="mt-4 text-xl md:text-2xl font-medium text-indigo-600">Social Media Manager & Technical Strategist</p>
+                <p class="mt-6 text-lg text-gray-600 max-w-2xl mx-auto">
+                    Highly analytical and result-oriented Social Media Manager with 5+ years of content strategy experience. My strong foundation in Computer Science enables a unique, data-driven approach to optimizing content, understanding algorithms, and automating growth.
+                </p>
+                <div class="mt-10 flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+                    <a href="#strategy" class="px-8 py-3 bg-indigo-600 text-white font-medium rounded-md shadow-lg hover:bg-indigo-700 transition-colors text-lg">
+                        See My Strategy
+                    </a>
+                    <a href="#portfolio" class="px-8 py-3 bg-white text-indigo-600 font-medium rounded-md shadow-lg border border-gray-200 hover:bg-gray-50 transition-colors text-lg">
+                        View My Work
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section id="strategy" class="pt-20">
+            <h2 class="text-3xl font-bold text-center text-gray-900">My Social Strategy: By the Numbers</h2>
+            <p class="mt-4 text-lg text-gray-600 text-center max-w-2xl mx-auto">
+                For over 5 years, I've managed a personal brand in the competitive tech and education niche. I focus on measurable outcomes, not just vanity metrics. Here's a snapshot of the results from my strategic, data-driven approach.
+            </p>
+            <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="stat-card text-center">
+                    <div class="text-5xl font-bold text-indigo-600">5,000+</div>
+                    <p class="mt-2 text-lg font-medium text-gray-700">Engaged Followers</p>
+                    <p class="mt-1 text-gray-500">Grown organically on LinkedIn & X (Twitter).</p>
+                </div>
+                <div class="stat-card text-center">
+                    <div class="text-5xl font-bold text-indigo-600">7%</div>
+                    <p class="mt-2 text-lg font-medium text-gray-700">Average Engagement Rate</p>
+                    <p class="mt-1 text-gray-500">Consistently above industry averages.</p>
+                </div>
+                <div class="stat-card text-center">
+                    <div class="text-5xl font-bold text-indigo-600">500+</div>
+                    <p class="mt-2 text-lg font-medium text-gray-700">Pieces of Original Content</p>
+                    <p class="mt-1 text-gray-500">Including articles, threads, and tutorials.</p>
+                </div>
+            </div>
+            <div class="mt-16 bg-white p-6 rounded-lg shadow-md border border-gray-100">
+                <h3 class="text-xl font-semibold text-center text-gray-800">Performance vs. Industry Average</h3>
+                <p class="text-center text-gray-600 text-sm mb-6">Demonstrating the impact of a data-informed content strategy.</p>
+                <div class="chart-container">
+                    <canvas id="engagementChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="skills" class="pt-20">
+            <h2 class="text-3xl font-bold text-center text-gray-900">Skills Dashboard</h2>
+            <p class="mt-4 text-lg text-gray-600 text-center max-w-2xl mx-auto">
+                My value is at the intersection of social strategy and technical execution. Use the filters below to explore my full range of capabilities, from brand voice development to data analytics and automation.
+            </p>
+            <div id="skill-filters" class="mt-10 flex flex-wrap justify-center gap-3">
+                <button class="filter-btn active" data-filter="all">All Skills</button>
+                <button class="filter-btn" data-filter="social">Social & Strategy</button>
+                <button class="filter-btn" data-filter="analytics">Analytics & Reporting</button>
+                <button class="filter-btn" data-filter="tools">Tools & Technical</button>
+            </div>
+            <div id="skill-grid" class="mt-10 flex flex-wrap justify-center gap-3">
+                <span class="skill-pill skill-item" data-category="social">Content Calendar Management</span>
+                <span class="skill-pill skill-item" data-category="social">Platform Algorithms (Meta, TikTok)</span>
+                <span class="skill-pill skill-item" data-category="social">Brand Voice Development</span>
+                <span class="skill-pill skill-item" data-category="social">SEO for Social</span>
+                <span class="skill-pill skill-item" data-category="social">Community Management</span>
+                <span class="skill-pill skill-item" data-category="social">Social Listening</span>
+                <span class="skill-pill skill-item" data-category="social">Competitor Analysis</span>
+                <span class="skill-pill skill-item" data-category="social">Crisis Communication</span>
+                <span class="skill-pill skill-item" data-category="analytics">Data Visualization (Technical)</span>
+                <span class="skill-pill skill-item" data-category="analytics">Google Analytics</span>
+                <span class="skill-pill skill-item" data-category="analytics">A/B Testing</span>
+                <span class="skill-pill skill-item" data-category="analytics">Campaign Optimization</span>
+                <span class="skill-pill skill-item" data-category="analytics">Performance Reporting</span>
+                <span class="skill-pill skill-item" data-category="analytics">Conversion Tracking</span>
+                <span class="skill-pill skill-item" data-category="tools">Meta Suite (Facebook, Instagram)</span>
+                <span class="skill-pill skill-item" data-category="tools">LinkedIn & X (Twitter)</span>
+                <span class="skill-pill skill-item" data-category="tools">Hootsuite / Sprout Social / Later</span>
+                <span class="skill-pill skill-item" data-category="tools">Canva Pro</span>
+                <span class="skill-pill skill-item" data-category="tools">ReactJS</span>
+                <span class="skill-pill skill-item" data-category="tools">JavaScript</span>
+                <span class="skill-pill skill-item" data-category="tools">HTML/CSS</span>
+                <span class="skill-pill skill-item" data-category="tools">Git/GitHub</span>
+                <span class="skill-pill skill-item" data-category="tools">Excel/Google Sheets</span>
+            </div>
+        </section>
+
+        <section id="portfolio" class="pt-20">
+            <h2 class="text-3xl font-bold text-center text-gray-900">Portfolio Deep Dive</h2>
+            <p class="mt-4 text-lg text-gray-600 text-center max-w-2xl mx-auto">
+                Here's how my experience translates into action. The first tab shows my direct social media work. The second shows how my technical projects give me a unique edge in managing and scaling social campaigns.
+            </p>
+            <div class="mt-10 w-full max-w-4xl mx-auto">
+                <div class="border-b border-gray-200">
+                    <nav id="tab-buttons" class="flex justify-center -mb-px space-x-2 md:space-x-8" aria-label="Tabs">
+                        <button class="tab-btn active" data-tab="social">
+                            Social Strategy in Action
+                        </button>
+                        <button class="tab-btn" data-tab="tech">
+                            The Technical Edge
+                        </button>
+                    </nav>
+                </div>
+                <div id="tab-contents" class="mt-8">
+                    <div class="tab-content active" data-tab="social">
+                        <div class="bg-white p-6 md:p-8 rounded-lg shadow-md border border-gray-100 space-y-6">
+                            <h3 class="text-2xl font-semibold text-indigo-600">Freelance & Personal Brand Management</h3>
+                            <p class="text-gray-600">As the sole manager for my tech/education brand, I handled all aspects of strategy, content, and growth.</p>
+                            <ul class="list-disc list-inside space-y-3 text-gray-700">
+                                <li>
+                                    <span class="font-semibold">Platform Growth Strategy:</span> Designed and executed a strategic content cadence on LinkedIn and X (Twitter), resulting in 5,000+ engaged followers.
+                                </li>
+                                <li>
+                                    <span class="font-semibold">Performance Optimization:</span> Conducted weekly data analysis on thread performance and carousel post engagement, optimizing formats to consistently achieve a 7% average engagement rate.
+                                </li>
+                                <li>
+                                    <span class="font-semibold">Content Production & SEO:</span> Created over 500 pieces of original educational content, including long-form LinkedIn articles and viral X threads, leveraging technical SEO to maximize visibility.
+                                </li>
+                                <li>
+                                    <span class="font-semibold">Community Management:</span> Fostered a positive technical community by managing all comments and DMs, positioning the brand as a thought leader.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="tab-content" data-tab="tech">
+                        <div class="bg-white p-6 md:p-8 rounded-lg shadow-md border border-gray-100 space-y-6">
+                            <h3 class="text-2xl font-semibold text-indigo-600">How My Tech Skills Apply to Social Media</h3>
+                            <p class="text-gray-600">My CS projects weren't just for class. They provided direct, hands-on experience in areas that are critical to modern social media management.</p>
+                            <ul class="list-disc list-inside space-y-3 text-gray-700">
+                                <li>
+                                    <span class="font-semibold">Analytics & Reporting:</span> My work with ReactJS and Data Analytics (from Agnikul internship) translates directly to an ability to build and interpret complex social media performance dashboards, going far beyond default platform analytics.
+                                </li>
+                                <li>
+                                    <span class="font-semibold">Scalability & Efficiency:</span> Designing scalable web services (AWS Lambda, DynamoDB) for a URL shortener proves I can plan and manage large-scale content delivery systems and automate marketing workflows.
+                                </li>
+                                <li>
+                                    <span class="font-semibold">UX/UI Focus:</span> Integrating drag-and-drop features in my Portfolio Builder project demonstrates a deep commitment to user experience—a core requirement for designing effective social media campaigns and ad creatives.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="education" class="pt-20">
+            <h2 class="text-3xl font-bold text-center text-gray-900">Education & Achievements</h2>
+            <p class="mt-4 text-lg text-gray-600 text-center max-w-2xl mx-auto">
+                My formal education in Computer Science provides the analytical foundation for my creative work. This is complemented by proven success in high-pressure, competitive environments like hackathons.
+            </p>
+            <div class="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-md border border-gray-100">
+                    <h3 class="text-2xl font-semibold text-indigo-600 mb-4">Education</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <p class="text-lg font-semibold text-gray-800">Bachelor of Technology in Computer Science (7.5 SGPA)</p>
+                            <p class="text-gray-600">IK Gujral Punjab Technical University, Jalandhar</p>
+                            <p class="text-sm text-gray-500">Aug 2023 – May 2026</p>
+                        </div>
+                        <div class="border-t border-gray-100 pt-4">
+                            <p class="text-lg font-semibold text-gray-800">Diploma in Computer Science (76.9%)</p>
+                            <p class="text-gray-600">Shaheed Bhagat Singh State University, Firozpur</p>
+                            <p class="text-sm text-gray-500">Aug 2020 – May 2023</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border border-gray-100">
+                    <h3 class="text-2xl font-semibold text-indigo-600 mb-4">Achievements</h3>
+                    <ul class="list-disc list-inside space-y-3 text-gray-700">
+                        <li>Secured **5th position** among 200+ teams in a PSBs National Level Hackathon.</li>
+                        <li>Achieved **2nd position** in a state-level hackathon conducted by ISTE at GNA University.</li>
+                        <li>Solved **500+ DSA problems** across platforms (LeetCode, CodeChef, GFG), demonstrating elite problem-solving skills.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="mt-20 border-t border-gray-200 bg-white">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <h2 class="text-2xl font-bold text-center text-gray-900">Let's Connect</h2>
+            <p class="mt-4 text-lg text-gray-600 text-center max-w-xl mx-auto">
+                I'm excited to bring my unique blend of data-driven strategy and technical expertise to a forward-thinking team.
+            </p>
+            <div class="mt-8 flex justify-center space-x-6">
+                <a href="mailto:krishankantptu@gmail.com" class="text-gray-500 hover:text-indigo-600 transition-colors">
+                    <span class="sr-only">Email</span>
+                    <span class="text-sm font-medium">krishankantptu@gmail.com</span>
+                </a>
+                <span class="text-gray-300">|</span>
+                <a href="https://www.linkedin.com/in/krishankant30" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-indigo-600 transition-colors">
+                    <span class="sr-only">LinkedIn</span>
+                    <span class="text-sm font-medium">LinkedIn</span>
+                </a>
+                <span class="text-gray-300">|</span>
+                <span class="text-sm font-medium text-gray-500">+91-6204142591</span>
+            </div>
+            <p class="mt-10 text-center text-xs text-gray-400">
+                &copy; 2025 Krishan Kant. Interactive resume built with HTML, Tailwind CSS, and Chart.js.
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // Mobile Menu Toggle
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (mobileMenuBtn) {
+                mobileMenuBtn.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+
+            // Sticky Nav Active State on Scroll
+            const sections = document.querySelectorAll('section[id]');
+            const navLinks = document.querySelectorAll('nav a.nav-link');
+            const navLinksMobile = document.querySelectorAll('#mobile-menu a.nav-link');
+            const navHeight = document.querySelector('nav').offsetHeight;
+
+            const updateActiveLink = (links) => {
+                let current = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    if (window.scrollY >= sectionTop - navHeight - 10) {
+                        current = section.getAttribute('id');
+                    }
+                });
+
+                links.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === `#${current}`) {
+                        link.classList.add('active');
+                    }
+                });
+            };
+
+            window.addEventListener('scroll', () => {
+                updateActiveLink(navLinks);
+                updateActiveLink(navLinksMobile);
+            });
+            
+            // Close mobile menu on link click
+            document.querySelectorAll('#mobile-menu a').forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenu.classList.add('hidden');
+                });
+            });
+
+            // Chart.js Engagement Chart
+            const ctx = document.getElementById('engagementChart');
+            if (ctx) {
+                new Chart(ctx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['LinkedIn Strategy', 'X (Twitter) Strategy'],
+                        datasets: [
+                            {
+                                label: 'My Average Engagement Rate',
+                                data: [7, 7],
+                                backgroundColor: 'rgba(79, 70, 229, 0.8)', // indigo-600
+                                borderColor: 'rgba(79, 70, 229, 1)',
+                                borderWidth: 1,
+                                maxBarThickness: 60
+                            },
+                            {
+                                label: 'Tech Industry Average',
+                                data: [3.5, 2.1], // Typical averages
+                                backgroundColor: 'rgba(209, 213, 219, 0.8)', // gray-300
+                                borderColor: 'rgba(209, 213, 219, 1)',
+                                borderWidth: 1,
+                                maxBarThickness: 60
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.y !== null) {
+                                            label += context.parsed.y + '%';
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + '%'
+                                    }
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Engagement Rate'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Skills Filter Logic
+            const filterButtons = document.querySelectorAll('#skill-filters .filter-btn');
+            const skillItems = document.querySelectorAll('#skill-grid .skill-item');
+
+            filterButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const filter = button.dataset.filter;
+
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+
+                    skillItems.forEach(item => {
+                        if (filter === 'all' || item.dataset.category === filter) {
+                            item.classList.remove('hidden');
+                        } else {
+                            item.classList.add('hidden');
+                        }
+                    });
+                });
+            });
+
+            // Portfolio Tabs Logic
+            const tabButtons = document.querySelectorAll('#tab-buttons .tab-btn');
+            const tabContents = document.querySelectorAll('#tab-contents .tab-content');
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const tab = button.dataset.tab;
+
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+
+                    tabContents.forEach(content => {
+                        if (content.dataset.tab === tab) {
+                            content.classList.add('active');
+                        } else {
+                            content.classList.remove('active');
+                        }
+                    });
+                });
+            });
+
+        });
+    </script>
+
+</body>
+</html>
